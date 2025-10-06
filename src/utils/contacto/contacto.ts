@@ -1,10 +1,16 @@
+
 import nodemailer from 'nodemailer';
-import { REMITENTE, PASS_GMAIL, TIPO_SERVICIO_MESSAGE } from '../../config';
+import { REMITENTE, PASS_GMAIL } from '../../config';
 
 export const transporter = nodemailer.createTransport({
-    service: TIPO_SERVICIO_MESSAGE,
+    host: 'smtp.gmail.com',
+    port: 465,
+    secure: true, // usa TLS
     auth: {
         user: REMITENTE,
         pass: PASS_GMAIL,
+    },
+    tls: {
+        rejectUnauthorized: false, // evita errores de certificados en Render
     },
 });

@@ -7,9 +7,14 @@ exports.transporter = void 0;
 const nodemailer_1 = __importDefault(require("nodemailer"));
 const config_1 = require("../../config");
 exports.transporter = nodemailer_1.default.createTransport({
-    service: config_1.TIPO_SERVICIO_MESSAGE,
+    host: 'smtp.gmail.com',
+    port: 465,
+    secure: true, // usa TLS
     auth: {
         user: config_1.REMITENTE,
         pass: config_1.PASS_GMAIL,
+    },
+    tls: {
+        rejectUnauthorized: false, // evita errores de certificados en Render
     },
 });
