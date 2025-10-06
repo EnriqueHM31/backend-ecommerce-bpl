@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "npx nodemon -r tsconfig-paths/register src/index.ts",
     "build": "tsc",
-    "start": "node -r tsconfig-paths/register build/index.js",
+    "start": "node dist/index.js",
     "train": "npx ts-node -r tsconfig-paths/register src/workers/trainer.ts",
     "train:dev": "npx nodemon -r tsconfig-paths/register src/workers/trainer.ts",
     "test": "jest",
