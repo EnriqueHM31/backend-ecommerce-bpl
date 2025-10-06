@@ -1,0 +1,10 @@
+.env
+.vercel
+.node_modules
+.dist
+.build
+.modelo-colaborativo
+.test
+.build
+.entrenamiento.json
+.coverage
