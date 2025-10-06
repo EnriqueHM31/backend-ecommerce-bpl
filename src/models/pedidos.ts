@@ -70,9 +70,13 @@ export class PedidosModel {
                 };
             }
 
+            console.log({ checkout_session_id });
+
             const session = await stripe.checkout.sessions.retrieve(checkout_session_id, {
                 expand: ['line_items', 'customer']
             });
+
+            console.log({ session });
 
             const line_items = session.metadata?.carrito;
 

@@ -36,9 +36,11 @@ class PedidosModel {
                         data: { pedido_id: pedidoExistente.id }
                     };
                 }
+                console.log({ checkout_session_id });
                 const session = yield stripe.checkout.sessions.retrieve(checkout_session_id, {
                     expand: ['line_items', 'customer']
                 });
+                console.log({ session });
                 const line_items = (_a = session.metadata) === null || _a === void 0 ? void 0 : _a.carrito;
                 // 2. Verificar usuario
                 const { data: usuario, error: errorUsuario } = yield db_1.supabase
