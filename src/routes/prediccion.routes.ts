@@ -6,11 +6,11 @@ import { supabase } from "../database/db";
 const RouterPrediccion = express.Router();
 
 /**
- * GET /recommendations/:userId
- * Genera recomendaciones basadas en historial de compras
+ * GET /recommendations?userId=...
+ * Si no se proporciona userId, devuelve los 5 productos más vendidos
  */
-RouterPrediccion.get("/:userId", async (req, res) => {
-    const { userId } = req.params;
+RouterPrediccion.get("/recomendaciones/", async (req, res) => {
+    const userId = req.query.userId as string | undefined;
 
     try {
         // 1️⃣ Obtener todos los pedidos de todos los usuarios
@@ -57,45 +57,49 @@ RouterPrediccion.get("/:userId", async (req, res) => {
 
         const productos = productosData.map((p) => p.sku);
 
-        // 5️⃣ Si el usuario no tiene compras, devolver los 5 productos más vendidos
-        const userCompras = compras.filter(c => c.usuario_id === userId);
-        if (!userCompras.length) {
-            // Contar cantidad de cada producto en pedidoItems
+        // ✅ Función auxiliar: devolver top 5 productos más vendidos
+        const topProductosMasVendidos = () => {
             const contadorProductos: Record<number, number> = {};
             pedidoItems.forEach(pi => {
                 contadorProductos[pi.producto_id] = (contadorProductos[pi.producto_id] || 0) + 1;
             });
-
-            // Ordenar y tomar los 5 más vendidos
             const top5Ids = Object.entries(contadorProductos)
                 .sort((a, b) => b[1] - a[1])
                 .slice(0, 4)
                 .map(([id]) => Number(id));
 
-            // Mapear a SKUs
-            const top5SKUs = top5Ids.map(id => mapaIdToSku[id]);
-
-            res.json({
-                userId,
-                recomendaciones: top5SKUs,
+            return {
+                recomendaciones: top5Ids.map(id => mapaIdToSku[id]),
                 detalle: top5Ids.map(id => ({ producto_id: id, sku: mapaIdToSku[id] })),
                 recomendado: false
-            });
-            return
+            };
+        };
+
+        // 5️⃣ Si no llega userId, devolver top 5 productos más vendidos
+        if (!userId) {
+            res.json({ userId: null, ...topProductosMasVendidos() });
+            return;
         }
 
-        // 6️⃣ Construir matriz user-item
+        // 6️⃣ Filtrar compras del usuario
+        const userCompras = compras.filter(c => c.usuario_id === userId);
+        if (!userCompras.length) {
+            res.json({ userId, ...topProductosMasVendidos() });
+        }
+
+        // 7️⃣ Construir matriz user-item
         const { userIds, matrix } = construirMatrizUserItem(compras, productos, mapaIdToSku);
 
-        // 7️⃣ Localizar índice del usuario actual
+        // 8️⃣ Localizar índice del usuario actual
         const userIndex = userIds.indexOf(userId);
-        if (userIndex === -1)
-            res.json({ message: "Usuario sin historial de compras", recomendaciones: [], detalles: [], recomendado: false });
+        if (userIndex === -1) {
+            res.json({ userId, ...topProductosMasVendidos() });
+        }
 
-        // 8️⃣ Generar recomendaciones
+        // 9️⃣ Generar recomendaciones
         const recomendaciones = generarRecomendaciones(matrix, productos, userIndex);
 
-        // 9️⃣ Devolver los SKUs recomendados
+        // 🔟 Devolver los SKUs recomendados
         const recommendedSKUs = recomendaciones.map((r) => r.producto);
 
         res.json({
@@ -104,6 +108,7 @@ RouterPrediccion.get("/:userId", async (req, res) => {
             detalle: recomendaciones,
             recomendado: true
         });
+
     } catch (err) {
         console.error("❌ Error generando recomendaciones:", err);
         res.status(500).json({ error: "Error generando recomendaciones", recomendaciones: [], detalles: [], recomendado: false });
