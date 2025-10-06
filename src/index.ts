@@ -18,7 +18,17 @@ import RouterPrediccion from './routes/prediccion.routes';
 const app = express();
 app.use(express.json());
 
-app.use(cors({ origin: true }));
+app.use(cors({
+    origin: [
+        "https://tuapp.com",
+        "https://admin.tuapp.com",
+        "http://localhost:5173",// si lo usas para pruebas locales
+        "http://192.168.56.1:5173",
+        "https://ecommerce-recomendaciones.vercel.app"
+    ],
+    credentials: true
+}));
+
 
 app.use('/api', ComentariosRouter);
 app.use('/api/productos', ProductosRouter);

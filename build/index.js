@@ -20,7 +20,16 @@ const tecnicos_routes_1 = __importDefault(require("./routes/tecnicos.routes"));
 const prediccion_routes_1 = __importDefault(require("./routes/prediccion.routes"));
 const app = (0, express_1.default)();
 app.use(express_1.default.json());
-app.use((0, cors_1.default)({ origin: true }));
+app.use((0, cors_1.default)({
+    origin: [
+        "https://tuapp.com",
+        "https://admin.tuapp.com",
+        "http://localhost:5173", // si lo usas para pruebas locales
+        "http://192.168.56.1:5173",
+        "https://ecommerce-recomendaciones.vercel.app"
+    ],
+    credentials: true
+}));
 app.use('/api', comentarios_routes_1.ComentariosRouter);
 app.use('/api/productos', productos_routes_1.ProductosRouter);
 app.use('/api/compra', pagos_routes_1.PagosRouter);
