@@ -62,23 +62,25 @@ export async function InsertarItems(pedido_id: number, item: { producto_id: numb
 
 export async function obtenerCompras(user_id: string) {
     const { data: pedidos, error } = await supabase
-        .from('pedidos')
+        .from("pedidos")
         .select(`
-            id,
-            fecha_pedido,
-            estado,
-            total,
-            pedido_items(count)
-        `)
-        .eq('usuario_id', user_id)
-        .order('fecha_pedido', { ascending: false });
+        id,
+        fecha_pedido,
+        estado,
+        total,
+        pedido_items(count)
+      `)
+        .eq("usuario_id", user_id)
+        .order("fecha_pedido", { ascending: false });
 
     if (error) {
         throw new Error(`Error al obtener compras: ${error.message}`);
     }
 
-    return { pedidos }
+    // 🧩 Si no hay pedidos, devolver un array vacío
+    return { pedidos: pedidos ?? [] };
 }
+
 
 export async function CheckearCompra(pedido_id: number) {
     const { data: pedidoCheck, error } = await supabase

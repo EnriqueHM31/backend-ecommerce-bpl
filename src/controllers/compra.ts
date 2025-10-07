@@ -1,5 +1,5 @@
-import { supabase } from "../database/db";
 import { obtenerStripe } from "../constants/Stripe";
+import { supabase } from "../database/db";
 import { ModeloCompra } from "../models/compra";
 import { CartItem } from "../types/producto";
 //import { ModeloFactura } from "../utils/contacto/factura";
@@ -328,7 +328,7 @@ export class CompraController {
 
             if (pedidosError) res.status(400).json({ error: pedidosError.message });
             if (!pedidos || pedidos.length === 0) {
-                res.status(404).json({ message: "No se encontraron pedidos" });
+                res.status(200).json({ success: true, message: "No se encontraron pedidos", data: [] });
                 return;
             }
 
