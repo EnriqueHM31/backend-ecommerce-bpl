@@ -78,42 +78,59 @@ export class CompraController {
 
 
     static async ObtenerCompraPorSessionId(req: Request, res: Response) {
+        const stripe = obtenerStripe();
         try {
             const { sessionId } = req.query;
 
             if (!sessionId) {
                 res.status(400).json({ success: false, message: "No se proporcionó sessionId" });
-                return;
             }
 
-            // 1️⃣ Traer el pedido por sessionId
+            // 1️⃣ Consultar la sesión en Stripe
+            const session = await stripe.checkout.sessions.retrieve(sessionId as string);
+
+            if (!session) {
+                res.status(404).json({ success: false, message: "No se encontró la sesión de Stripe" });
+                return
+            }
+
+
+
+            // 3️⃣ Buscar el pedido relacionado en tu base de datos
             const { data: pedidos, error: pedidosError } = await supabase
                 .from("pedidos")
                 .select("*")
                 .eq("id", sessionId as string);
 
-            if (pedidosError) res.status(400).json({ success: false, error: pedidosError.message });
+            if (pedidosError) {
+                res.status(400).json({ success: false, error: pedidosError.message });
+                return
+            }
+
             if (!pedidos || pedidos.length === 0) {
                 res.status(404).json({ success: false, message: "No se encontró el pedido" });
-                return;
+                return
             }
 
             const pedido = pedidos[0];
 
-            // 2️⃣ Traer items del pedido
+            // 4️⃣ Traer items del pedido
             const { data: items, error: itemsError } = await supabase
                 .from("pedido_items")
                 .select("*")
                 .eq("pedido_id", sessionId as string);
 
-            if (itemsError) res.status(400).json({ success: false, error: itemsError.message });
-
-            if (!items || items.length === 0) {
-                res.status(404).json({ success: false, message: "No se encontró el pedido" });
-                return;
+            if (itemsError) {
+                res.status(400).json({ success: false, error: itemsError.message });
+                return
             }
 
-            // 3️⃣ Traer productos_sku relacionados
+            if (!items || items.length === 0) {
+                res.status(404).json({ success: false, message: "No se encontraron items del pedido" });
+                return
+            }
+
+            // 5️⃣ Traer productos relacionados
             const productoSkuIds = items.map(i => i.producto_id);
             const { data: productosSku, error: skuError } = await supabase
                 .from("productos_sku")
@@ -124,71 +141,102 @@ export class CompraController {
               imagen_url,
               active,
               precio,
-              productos_base(id,nombre,descripcion,marca,categorias(nombre)),
-              variantes(id,nombre_variante,procesador,display,camara,bateria,conectividad,sistema_operativo),
-              colores(nombre),
-              almacenamientos(capacidad),
-              especificaciones_ram(capacidad,tipo)
+              productos_base(id,nombre,descripcion,marca,categorias(nombre))
             `)
                 .in("id", productoSkuIds);
 
-            if (skuError) res.status(400).json({ success: false, error: skuError.message });
+            if (skuError)
+                res.status(400).json({ success: false, error: skuError.message });
 
-            if (!productosSku || productosSku.length === 0) {
-                res.status(404).json({ success: false, message: "No se encontró el pedido" });
-                return;
+            // 6️⃣ Traer dirección
+            const { data: direcciones, error: direccionError } = await supabase
+                .from("direcciones")
+                .select("*")
+                .eq("id_direccion", pedido.direccion_envio_id);
+
+            if (direccionError) {
+
+                res.status(400).json({ success: false, error: direccionError.message });
+                return
             }
 
-            // 4️⃣ Mapear productos en items
+            const direccion = direcciones?.[0] ?? null;
+
+            // 7️⃣ Traer usuario
+            const { data: usuario, error: usuarioError } = await supabase
+                .from("usuarios")
+                .select("*")
+                .eq("id_usuario", pedido.usuario_id);
+
+            if (usuarioError) {
+                res.status(400).json({ success: false, error: usuarioError.message });
+                return
+            }
+
+            const usuarioDB = usuario?.[0] ?? null;
+
+            // 8️⃣ Armar items con datos del producto
             const itemsConProductos = items.map(item => {
-                const sku = productosSku.find(p => p.id === item.producto_id);
+                const sku = productosSku?.find(p => p.id === item.producto_id);
                 return {
                     ...item,
                     cantidad: item.cantidad ?? 1,
                     producto: sku
                 };
             });
+            /*
+                        // 2️⃣ Revisar si ya se envió la factura
+                        if (session.metadata?.enviada_factura !== "true") {
+                            // 9️⃣ Crear ReciboProps
+                            const reciboProps = {
+                                nombre: usuarioDB?.nombre ?? "Cliente",
+                                correo: usuarioDB?.correo ?? "Sin correo",
+                                monto: pedido.total?.toString() ?? "0.00",
+                                fecha: new Date(pedido.fecha_pedido + "Z").toLocaleString("es-MX", {
+                                    timeZone: "America/Mexico_City"
+                                }),
+                                direccion1: direccion?.calle ?? "",
+                                direccion2: direccion?.colonia ?? "",
+                                ciudad: direccion?.ciudad ?? "",
+                                estado: direccion?.estado ?? "",
+                                cp: direccion?.cp ?? "",
+                                pais: direccion?.pais ?? "México",
+                                items: itemsConProductos.map((item: any) => ({
+                                    producto: item.producto?.productos_base?.nombre ?? "Producto",
+                                    cantidad: item.cantidad ?? 1,
+                                    precio: item.producto?.precio?.toString() ?? "0.00",
+                                    total: ((item.cantidad ?? 1) * (item.producto?.precio ?? 0)).toFixed(2)
+                                }))
+                            };
+            
+                            // 🔟 Enviar factura
+                            await ModeloFactura.EnviarFacturaPDF(reciboProps);
+            
+                            // 1️⃣1️⃣ Actualizar metadata en Stripe
+                            await stripe.checkout.sessions.update(sessionId as string, {
+                                metadata: {
+                                    ...session.metadata,
+                                    enviada_factura: "true"
+                                }
+                            });
+                        }
+            */
+            const pedidoConItemsYDireccion = { ...pedido, fecha_pedido: new Date(pedido.fecha_pedido + 'Z').toLocaleString('es-MX', { timeZone: 'America/Mexico_City' }), items: itemsConProductos, direccion, usuario: usuarioDB };
 
-            // 5️⃣ Traer dirección del pedido
-            const { data: direcciones, error: direccionError } = await supabase
-                .from("direcciones")
-                .select("*")
-                .eq("id_direccion", pedido.direccion_envio_id);
-
-            if (direccionError) res.status(400).json({ success: false, error: direccionError.message });
-
-            const direccion = direcciones?.[0] ?? null;
 
 
-            const { data: usuario, error: usuarioError } = await supabase
-                .from("usuarios")
-                .select("*")
-                .eq("id_usuario", pedido.usuario_id);
-
-            if (usuarioError) res.status(400).json({ success: false, error: usuarioError.message });
-            const usuarioDB = usuario?.[0] ?? null;
-            // 6️⃣ Construir objeto final
-            const pedidoConItemsYDireccion = {
-                ...pedido,
-                fecha_pedido: new Date(pedido.fecha_pedido + 'Z').toLocaleString('es-MX', {
-                    timeZone: 'America/Mexico_City'
-                }),
-                items: itemsConProductos,
-                direccion,
-                usuario: usuarioDB
-            };
-
-
-
-
-            res.status(200).json({ success: true, data: pedidoConItemsYDireccion });
+            // ✅ Responder
+            res.status(200).json({
+                success: true,
+                message: "Factura enviada correctamente y marcada como enviada en Stripe.",
+                data: pedidoConItemsYDireccion
+            });
 
         } catch (err: any) {
             console.error(err);
             res.status(500).json({ success: false, message: "Error interno del servidor" });
         }
     }
-
     static async ObtenerComprasPorEmail(req: Request, res: Response) {
         const stripe = obtenerStripe();
 

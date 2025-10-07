@@ -8,26 +8,20 @@ import { PagosRouter } from './routes/pagos.routes';
 import { ProductosRouter } from './routes/productos.routes';
 import { UsuarioRouter } from './routes/usuario.routes';
 //import { PrediccionRouter } from './routes/prediccion.routes';
-import { PORT } from './config';
 import RouterCategorias from './routes/categorias.routes';
 import RouterCreateProductos from './routes/createProductos.routes';
-import RouterTecnicos from './routes/tecnicos.routes';
 import RouterPrediccion from './routes/prediccion.routes';
+import RouterTecnicos from './routes/tecnicos.routes';
 
 
 const app = express();
 app.use(express.json());
 
 app.use(cors({
-    origin: [
-        "https://tuapp.com",
-        "https://admin.tuapp.com",
-        "http://localhost:5173",// si lo usas para pruebas locales
-        "http://192.168.56.1:5173",
-        "https://ecommerce-recomendaciones.vercel.app"
-    ],
-    credentials: true
+    origin: "*",
+    methods: ["GET", "POST", "PUT", "DELETE"]
 }));
+
 
 
 app.use('/api', ComentariosRouter);
@@ -120,6 +114,6 @@ app.get("/", (_req, res) => {
 });
 
 
-app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`)
-})
+app.listen(3000, "0.0.0.0", () => {
+    console.log("Servidor corriendo en http://192.168.56.1:3000");
+});
