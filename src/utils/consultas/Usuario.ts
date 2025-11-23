@@ -17,6 +17,9 @@ export async function CheckearUsuario(user_id: string): Promise<{ existe: boolea
 
         if (error) throw error;
 
+        console.log("Usuario verificado:", userCheck);
+
+
         return { existe: !!userCheck };
     } catch (err) {
         console.error("Error verificando usuario:", err);
@@ -32,7 +35,7 @@ export async function InsertarUsuario(
     try {
         const { data, error } = await supabase
             .from("usuarios")
-            .insert([{ id_usuario: usuario_id, nombre, correo, id_rol: 1 }])
+            .insert([{ id_usuario: usuario_id, nombre, correo, id_rol: 2 }])
             .select("id_usuario, nombre, correo")
             .maybeSingle();
 
