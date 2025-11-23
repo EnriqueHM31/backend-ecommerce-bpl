@@ -19,8 +19,10 @@ RouterPrediccion.get("/recomendaciones/", async (req, res) => {
             .select("id, usuario_id");
 
         if (pedidosError) throw pedidosError;
-        if (!pedidos || pedidos.length === 0)
+        if (!pedidos || pedidos.length === 0) {
             res.json({ message: "No hay pedidos en la base de datos", recomendaciones: [], detalles: [], recomendado: false });
+            return
+        }
 
         const pedidoIds = pedidos.map((p) => p.id);
 
@@ -46,8 +48,10 @@ RouterPrediccion.get("/recomendaciones/", async (req, res) => {
             .order("sku");
 
         if (productosError) throw productosError;
-        if (!productosData || !productosData.length)
+        if (!productosData || !productosData.length) {
             res.json({ message: "No hay productos en la base de datos", recomendaciones: [], detalles: [], recomendado: false });
+            return
+        }
 
         // 4️⃣ Crear mapa producto_id → sku
         const mapaIdToSku: Record<number, string> = {};
@@ -85,6 +89,7 @@ RouterPrediccion.get("/recomendaciones/", async (req, res) => {
         const userCompras = compras.filter(c => c.usuario_id === userId);
         if (!userCompras.length) {
             res.json({ userId, ...topProductosMasVendidos() });
+            return
         }
 
         // 7️⃣ Construir matriz user-item
@@ -94,6 +99,7 @@ RouterPrediccion.get("/recomendaciones/", async (req, res) => {
         const userIndex = userIds.indexOf(userId);
         if (userIndex === -1) {
             res.json({ userId, ...topProductosMasVendidos() });
+            return
         }
 
         // 9️⃣ Generar recomendaciones

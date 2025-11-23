@@ -114,6 +114,6 @@ app.get("/", (_req, res) => {
 });
 
 
-app.listen(3000, "0.0.0.0", () => {
-    console.log("Servidor corriendo en http://192.168.56.1:3000");
+app.listen(3000, () => {
+    console.log("Servidor corriendo en http://localhost:3000");
 });
