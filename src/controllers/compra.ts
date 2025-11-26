@@ -7,6 +7,7 @@ import { Request, Response } from "express";
 import { getAllLineItems, getAllSessions } from "../utils/pagos/stripe";
 import { CartItemsValidation } from "../utils/validaciones/cartItems";
 import { UsuarioValidation } from "../utils/validaciones/usuario";
+import { ModeloFactura } from "@/utils/contacto/factura";
 
 interface Customer {
     id: string;
@@ -184,43 +185,43 @@ export class CompraController {
                     producto: sku
                 };
             });
-            /*
-                        // 2️⃣ Revisar si ya se envió la factura
-                        if (session.metadata?.enviada_factura !== "true") {
-                            // 9️⃣ Crear ReciboProps
-                            const reciboProps = {
-                                nombre: usuarioDB?.nombre ?? "Cliente",
-                                correo: usuarioDB?.correo ?? "Sin correo",
-                                monto: pedido.total?.toString() ?? "0.00",
-                                fecha: new Date(pedido.fecha_pedido + "Z").toLocaleString("es-MX", {
-                                    timeZone: "America/Mexico_City"
-                                }),
-                                direccion1: direccion?.calle ?? "",
-                                direccion2: direccion?.colonia ?? "",
-                                ciudad: direccion?.ciudad ?? "",
-                                estado: direccion?.estado ?? "",
-                                cp: direccion?.cp ?? "",
-                                pais: direccion?.pais ?? "México",
-                                items: itemsConProductos.map((item: any) => ({
-                                    producto: item.producto?.productos_base?.nombre ?? "Producto",
-                                    cantidad: item.cantidad ?? 1,
-                                    precio: item.producto?.precio?.toString() ?? "0.00",
-                                    total: ((item.cantidad ?? 1) * (item.producto?.precio ?? 0)).toFixed(2)
-                                }))
-                            };
-            
-                            // 🔟 Enviar factura
-                            await ModeloFactura.EnviarFacturaPDF(reciboProps);
-            
-                            // 1️⃣1️⃣ Actualizar metadata en Stripe
-                            await stripe.checkout.sessions.update(sessionId as string, {
-                                metadata: {
-                                    ...session.metadata,
-                                    enviada_factura: "true"
-                                }
-                            });
-                        }
-            */
+
+            // 2️⃣ Revisar si ya se envió la factura
+            if (session.metadata?.enviada_factura !== "true") {
+                // 9️⃣ Crear ReciboProps
+                const reciboProps = {
+                    nombre: usuarioDB?.nombre ?? "Cliente",
+                    correo: usuarioDB?.correo ?? "Sin correo",
+                    monto: pedido.total?.toString() ?? "0.00",
+                    fecha: new Date(pedido.fecha_pedido + "Z").toLocaleString("es-MX", {
+                        timeZone: "America/Mexico_City"
+                    }),
+                    direccion1: direccion?.calle ?? "",
+                    direccion2: direccion?.colonia ?? "",
+                    ciudad: direccion?.ciudad ?? "",
+                    estado: direccion?.estado ?? "",
+                    cp: direccion?.cp ?? "",
+                    pais: direccion?.pais ?? "México",
+                    items: itemsConProductos.map((item: any) => ({
+                        producto: item.producto?.productos_base?.nombre ?? "Producto",
+                        cantidad: item.cantidad ?? 1,
+                        precio: item.producto?.precio?.toString() ?? "0.00",
+                        total: ((item.cantidad ?? 1) * (item.producto?.precio ?? 0)).toFixed(2)
+                    }))
+                };
+
+                // 🔟 Enviar factura
+                await ModeloFactura.EnviarFacturaPDF(reciboProps);
+
+                // 1️⃣1️⃣ Actualizar metadata en Stripe
+                await stripe.checkout.sessions.update(sessionId as string, {
+                    metadata: {
+                        ...session.metadata,
+                        enviada_factura: "true"
+                    }
+                });
+            }
+
             const pedidoConItemsYDireccion = { ...pedido, fecha_pedido: new Date(pedido.fecha_pedido + 'Z').toLocaleString('es-MX', { timeZone: 'America/Mexico_City' }), items: itemsConProductos, direccion, usuario: usuarioDB };
 
 

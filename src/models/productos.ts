@@ -126,11 +126,17 @@ export class ModeloProductos {
 
       if (errorProductos) throw errorProductos;
 
+      console.log({ productosTOP: topIds });
+      console.log({ PRODUCTOS: productos });
       // Unir total_vendido
       const productosConTotal = productos.map((p: any) => {
-        const total_vendido = topIds.find((t: any) => t.producto_id === p.id)?.total_vendido || 0;
+        console.log({ ID_PRODUCTO: p.id });
+        const total_vendido = topIds.find((t: any) => t.producto_id === p.id)?.total_vendidos || 0;
+        console.log({ TOTAL_VENDIDO: total_vendido });
         return { ...p, total_vendido };
       });
+
+      console.log({ PRODUCTOSTOTAL: productosConTotal });
 
       return {
         success: true,
